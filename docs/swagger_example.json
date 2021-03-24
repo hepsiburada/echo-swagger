@@ -1,0 +1,57 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Documentation for ExampleApi",
+    "title": "ExampleApi",
+    "version": "1.0.0"
+  },
+  "basePath": "/",
+  "paths": {
+    "/product/{productId}": {
+      "get": {
+        "tags": [
+          "Product"
+        ],
+        "operationId": "getProduct",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "ProductId",
+            "description": "Id of an product",
+            "name": "productId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ProductModel",
+            "schema": {
+              "$ref": "#/definitions/ProductModel"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ProductModel": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        }
+      },
+      "x-go-package": "_/Users/zozcelik/Workspace/echo-swagger/example"
+    }
+  }
+}
