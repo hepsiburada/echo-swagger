@@ -14,8 +14,10 @@ import (
 )
 
 type Middleware struct {
-	FilePath string
-	BasePath string
+	FilePath       string
+	BasePath       string
+	AllowedOrigins []string
+	CORSOptions    []handlers.CORSOption
 }
 
 func (s *Middleware) swaggerUIHandler(opts middleware.SwaggerUIOpts) http.Handler {
@@ -37,7 +39,27 @@ func (s *Middleware) swaggerSpecFileHandler(swaggerUiHandler http.Handler) (http
 		return nil, err
 	}
 
-	return handlers.CORS()(middleware.Spec(s.BasePath, b, swaggerUiHandler)), nil
+	specHandler := middleware.Spec(s.BasePath, b, swaggerUiHandler)
+
+	if len(s.CORSOptions) > 0 {
+		return handlers.CORS(s.CORSOptions...)(specHandler), nil
+	}
+
+	if len(s.AllowedOrigins) > 0 {
+		return handlers.CORS(handlers.AllowedOrigins(s.AllowedOrigins))(specHandler), nil
+	}
+
+	return specHandler, nil
+}
+
+func (s *Middleware) SetAllowedOrigins(origins ...string) *Middleware {
+	s.AllowedOrigins = origins
+	return s
+}
+
+func (s *Middleware) SetCORSOptions(opts ...handlers.CORSOption) *Middleware {
+	s.CORSOptions = opts
+	return s
 }
 
 func (s *Middleware) Register(app *echo.Echo) {
@@ -54,13 +76,20 @@ func (s *Middleware) Register(app *echo.Echo) {
 		panic(err)
 	}
 
-	app.GET(path.Join(s.BasePath, swaggerUIOpts.Path), echo.WrapHandler(swaggerUiHandler))
-	app.GET(path.Join(s.BasePath, "swagger.json"), echo.WrapHandler(specFileHandler))
+	specPath := path.Join(s.BasePath, "swagger.json")
+	docsPath := path.Join(s.BasePath, swaggerUIOpts.Path)
+
+	app.GET(docsPath, echo.WrapHandler(swaggerUiHandler))
+	app.GET(specPath, echo.WrapHandler(specFileHandler))
+	if len(s.CORSOptions) > 0 || len(s.AllowedOrigins) > 0 {
+		app.OPTIONS(specPath, echo.WrapHandler(specFileHandler))
+	}
 }
 
-func NewMiddleware(fileName string, basePath string) *Middleware {
+func NewMiddleware(fileName string, basePath string, allowedOrigins ...string) *Middleware {
 	return &Middleware{
-		FilePath: fileName,
-		BasePath: basePath,
+		FilePath:       fileName,
+		BasePath:       basePath,
+		AllowedOrigins: allowedOrigins,
 	}
 }
